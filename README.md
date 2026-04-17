@@ -67,6 +67,19 @@ python scripts/bootstrap.py
 
 Linux 如果要自动抓 key，还需要额外安装 `gdb`。
 
+常见 Linux 依赖安装示例：
+
+```bash
+# Ubuntu / Debian
+sudo apt install sqlcipher gdb
+
+# Fedora
+sudo dnf install sqlcipher gdb
+
+# Arch Linux
+sudo pacman -S sqlcipher gdb
+```
+
 ### 2. 激活环境
 
 ```bash
@@ -108,6 +121,38 @@ wxchat-export doctor
 - macOS 会检查 `lldb`、`DevToolsSecurity`、`_developer` group、`SIP`、`hardened runtime`
 - Linux 会检查 `gdb`、`ptrace_scope`、Hook VA 和 `gdb attach`
 - Windows 目前仍以手动 `--db-key` 为主
+
+### Linux 快速路径
+
+如果你是在 Linux 上使用，推荐先按这个顺序做：
+
+1. 安装 `sqlcipher` 和 `gdb`
+2. 保持微信进程正在运行
+3. 运行 `wxchat-export doctor`
+4. 如果 `doctor` 通过，再运行 `sessions` 或 `export`
+
+一个最短示例：
+
+```bash
+source .venv/bin/activate
+wxchat-export doctor
+wxchat-export accounts
+wxchat-export sessions --account <account_id>
+wxchat-export export --account <account_id> --session all --out ./out
+```
+
+Linux 下当前实现优先尝试这些默认位置：
+
+- 微信二进制：`wechat`、`wechat-uos`、`weixin`、`/usr/bin/wechat`、`/opt/wechat/wechat`
+- 数据目录：`~/.xwechat/xwechat_files`、`~/.xwechat`、`~/.local/share/xwechat_files`
+
+如果你的安装路径不同，请显式传：
+
+```bash
+wxchat-export doctor \
+  --root /path/to/xwechat_files \
+  --wechat-binary /path/to/wechat
+```
 
 ## 基本用法
 
@@ -306,6 +351,10 @@ wxchat-export export --account <account_id> --session <username|all> --out <dir>
   在部分环境里这通常意味着需要关闭 SIP，或者放弃 `lldb attach` 方案
 - `WeChat hardened runtime: enabled` 且 `WeChat get-task-allow: absent`
   目标二进制本身就是 release / hardened 形态，运行时附加更容易被 AMFI 拒绝
+- Linux 下 `ptrace_scope: 1` 或 `ptrace_scope: 2`
+  这通常意味着当前用户不能直接调试附加其他进程，可能需要 root、`CAP_SYS_PTRACE`，或临时放宽 `ptrace_scope`
+- Linux 下 `gdb not found in PATH`
+  先安装 `gdb`，或者用 `WXCHAT_EXPORT_GDB` 指向自定义路径
 
 这类情况下，自动抓 key 可能不可用。可行做法通常只有：
 
@@ -345,6 +394,14 @@ wxchat-export doctor
 
 那就可以直接不带 `--db-key` 使用 `sessions` 和 `export`。
 
+如果 Linux 上 `doctor` 失败，最常见的排查顺序是：
+
+1. 先确认微信进程真的在运行
+2. 再确认 `gdb` 已安装
+3. 看 `ptrace_scope`
+4. 必要时用 `sudo` 再跑一次 `doctor`
+5. 仍然失败时先改用 `--db-key`
+
 ### 关于 SIP
 
 不同机器、不同 macOS 版本、不同微信构建之间，`lldb attach` 的可行性并不完全一致。
@@ -367,3 +424,11 @@ wxchat-export doctor
 - 常见 Python 缓存目录
 
 `.gitignore` 已经排除了 `.venv/`、缓存目录和导出产物。
+
+## 鸣谢
+
+本项目在数据库 key 挂点定位和调试附加抓取这部分，参考了 WeFlow 公开文档中披露的原理说明与研究思路。
+
+感谢 WeFlow 项目公开分享相关原理。
+
+当前仓库是一个独立的 Python CLI / clean-room 实现，代码结构、CLI 设计和导出链路均为单独实现，与 WeFlow 官方项目没有从属关系。
