@@ -106,7 +106,10 @@ def format_timestamp(timestamp: int) -> str:
     if not timestamp:
         return "1970-01-01 00:00:00"
     value = timestamp / 1000 if timestamp > 10_000_000_000 else timestamp
-    return datetime.fromtimestamp(value).strftime("%Y-%m-%d %H:%M:%S")
+    try:
+        return datetime.fromtimestamp(value).strftime("%Y-%m-%d %H:%M:%S")
+    except (OSError, OverflowError, ValueError):
+        return "1970-01-01 00:00:00"
 
 
 def json_dumps(data: object) -> str:
