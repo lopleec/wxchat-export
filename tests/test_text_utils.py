@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from wxchat_export.text_utils import classify_message, clean_system_message, extract_appmsg_type, sanitize_filename_component
+from wxchat_export.text_utils import classify_message, clean_system_message, extract_appmsg_type, format_timestamp, sanitize_filename_component
 
 
 class TextUtilsTests(unittest.TestCase):
@@ -21,6 +21,9 @@ class TextUtilsTests(unittest.TestCase):
 
     def test_sanitize_filename_component(self) -> None:
         self.assertEqual(sanitize_filename_component('A/B:C*D?'), "A_B_C_D_")
+
+    def test_format_timestamp_out_of_range_returns_epoch(self) -> None:
+        self.assertEqual(format_timestamp(10**18), "1970-01-01 00:00:00")
 
 
 if __name__ == "__main__":
